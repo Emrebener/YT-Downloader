@@ -1,0 +1,13 @@
+services:
+  ytdl:
+    build: .
+    container_name: youtube-mp3-downloader
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - WORK_DIR=/app/work
+    # Uncomment to keep large playlist downloads on host disk instead of the
+    # container's writable layer:
+    # volumes:
+    #   - ./work:/app/work

@@ -8,3 +8,4 @@ requirements-dev.txt
 pytest.ini
 conftest.py
 README.md
+venv/
