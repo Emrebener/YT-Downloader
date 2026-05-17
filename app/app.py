@@ -1,4 +1,5 @@
 """FastAPI application: routes, in-memory token store, temp-dir lifecycle."""
+import logging
 import os
 import shutil
 import threading
@@ -48,7 +49,10 @@ def _error(message: str, code: int = 400) -> JSONResponse:
 def _content_disposition(filename: str) -> str:
     """Build a Content-Disposition value with an ASCII fallback and RFC 5987 form."""
     ascii_name = filename.encode("ascii", "replace").decode("ascii")
-    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
+    return (
+        f"attachment; filename=\"{ascii_name}\"; "
+        f"filename*=UTF-8''{quote(filename, safe='')}"
+    )
 
 
 def _new_job_dir() -> Path:
@@ -73,7 +77,9 @@ def _sweep_loop() -> None:
         try:
             _sweep()
         except Exception:
-            pass
+            logging.getLogger(__name__).warning(
+                "cleanup sweep failed", exc_info=True
+            )
 
 
 @asynccontextmanager
