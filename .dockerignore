@@ -1,0 +1,10 @@
+tests/
+docs/
+.superpowers/
+.git/
+__pycache__/
+*.pyc
+requirements-dev.txt
+pytest.ini
+conftest.py
+README.md

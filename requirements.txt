@@ -1,0 +1,6 @@
+fastapi>=0.115
+uvicorn[standard]>=0.34
+# yt-dlp is intentionally unpinned: YouTube changes break old versions.
+# After the first successful Docker build, pin it (see README "Updating yt-dlp").
+yt-dlp
+zipstream-ng>=1.8
