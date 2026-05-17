@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YT Downloader</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>&#127925; YT Downloader</h1>
+
+    <div class="options">
+      <div class="toggle" id="mode-toggle">
+        <button type="button" data-mode="audio" class="active">Audio</button>
+        <button type="button" data-mode="video">Video</button>
+      </div>
+      <label>Format
+        <select id="format"></select>
+      </label>
+      <label>Quality
+        <select id="quality"></select>
+      </label>
+      <label class="check"><input type="checkbox" id="thumbnail" checked> Embed thumbnail</label>
+      <label class="check"><input type="checkbox" id="metadata" checked> Embed metadata</label>
+    </div>
+
+    <div class="input-row">
+      <input type="text" id="url" placeholder="Paste a YouTube video or playlist URL">
+      <button type="button" id="download-btn">Download</button>
+    </div>
+
+    <p class="error" id="error" hidden></p>
+    <p class="status" id="status" hidden></p>
+    <div id="results"></div>
+  </main>
+
+  <a id="sink" hidden></a>
+  <script src="/app.js"></script>
+</body>
+</html>
