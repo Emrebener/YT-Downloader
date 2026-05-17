@@ -5,8 +5,9 @@ import pytest
 from app import downloader
 from app.ytdl_options import DownloadOptions
 
-# Canonical yt-dlp test video. Module constant so it can be swapped if removed.
-TEST_VIDEO = "https://www.youtube.com/watch?v=BaW_jenozKc"
+# "Me at the zoo" — the first-ever YouTube video. Module constant so it can be
+# swapped if it ever becomes unavailable.
+TEST_VIDEO = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
 
 def _skip_if_gone(exc: Exception):
