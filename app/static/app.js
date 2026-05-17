@@ -51,8 +51,10 @@ function currentOptions() {
 function fmtDuration(secs) {
   if (secs == null) return "";
   secs = Math.round(secs);
-  const m = Math.floor(secs / 60);
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
   const s = String(secs % 60).padStart(2, "0");
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${s}`;
   return `${m}:${s}`;
 }
 
@@ -120,7 +122,7 @@ function setTrackStatus(row, state, message) {
   else { el.textContent = ""; btn.disabled = false; }
 }
 
-function buildTrackRow(entry, index, options) {
+function buildTrackRow(entry, index) {
   const row = document.createElement("div");
   row.className = "track";
 
@@ -146,7 +148,7 @@ function buildTrackRow(entry, index, options) {
   btn.addEventListener("click", async () => {
     setTrackStatus(row, "downloading");
     try {
-      await downloadOne(entry.url, options);
+      await downloadOne(entry.url, currentOptions());
       setTrackStatus(row, "done");
     } catch (e) {
       setTrackStatus(row, "error", e.message);
@@ -158,7 +160,6 @@ function buildTrackRow(entry, index, options) {
 }
 
 function renderPlaylist(info) {
-  const options = currentOptions();
   const results = $("results");
   results.replaceChildren();
 
@@ -175,7 +176,7 @@ function renderPlaylist(info) {
   const zipBtn = document.createElement("button");
   zipBtn.type = "button";
   zipBtn.textContent = "Download all (ZIP)";
-  zipBtn.addEventListener("click", () => downloadZip(options));
+  zipBtn.addEventListener("click", () => downloadZip(currentOptions()));
 
   const seqBtn = document.createElement("button");
   seqBtn.type = "button";
@@ -187,12 +188,13 @@ function renderPlaylist(info) {
   results.appendChild(head);
 
   const rows = info.entries.map((entry, i) => {
-    const row = buildTrackRow(entry, i, options);
+    const row = buildTrackRow(entry, i);
     results.appendChild(row);
     return row;
   });
 
   seqBtn.addEventListener("click", async () => {
+    const options = currentOptions();
     zipBtn.disabled = true;
     seqBtn.disabled = true;
     for (let i = 0; i < info.entries.length; i++) {
