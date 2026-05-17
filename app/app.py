@@ -175,3 +175,7 @@ def api_download_zip(url: str, mode: str = "audio", format: str = "mp3",
         headers={"Content-Disposition": _content_disposition(zip_name)},
         background=BackgroundTask(cleanup),
     )
+
+
+# Static frontend — mounted last so /api/* routes take precedence.
+app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
