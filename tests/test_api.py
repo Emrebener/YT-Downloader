@@ -106,3 +106,26 @@ def test_file_unknown_token_returns_404(client):
     res = client.get("/api/file/does-not-exist")
     assert res.status_code == 404
     assert "error" in res.json()
+
+
+def test_download_zip_streams_archive(client, monkeypatch):
+    def fake_zip(url, options, job_dir):
+        def gen():
+            yield b"PK\x03\x04fake-zip-bytes"
+        return gen(), "My Mix.zip"
+    monkeypatch.setattr(downloader, "build_playlist_zip", fake_zip)
+
+    res = client.get("/api/download-zip", params={"url": "http://x"})
+    assert res.status_code == 200
+    assert res.content.startswith(b"PK")
+    assert "My Mix.zip" in res.headers["content-disposition"]
+
+
+def test_download_zip_non_playlist_returns_error(client, monkeypatch):
+    def boom(url, options, job_dir):
+        raise downloader.DownloadFailed("This URL is not a playlist.")
+    monkeypatch.setattr(downloader, "build_playlist_zip", boom)
+
+    res = client.get("/api/download-zip", params={"url": "http://x"})
+    assert res.status_code == 400
+    assert res.json() == {"error": "This URL is not a playlist."}

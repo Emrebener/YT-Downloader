@@ -146,3 +146,32 @@ def api_file(token: str):
         headers={"Content-Disposition": _content_disposition(entry["filename"])},
         background=BackgroundTask(cleanup),
     )
+
+
+@app.get("/api/download-zip")
+def api_download_zip(url: str, mode: str = "audio", format: str = "mp3",
+                     quality: str = "320", thumbnail: bool = True,
+                     metadata: bool = True):
+    """Stream a playlist as an on-the-fly ZIP archive."""
+    options = DownloadOptions(
+        mode=mode, format=format, quality=quality,
+        embed_thumbnail=thumbnail, embed_metadata=metadata,
+    )
+    job_dir = _new_job_dir()
+    try:
+        zip_stream, zip_name = downloader.build_playlist_zip(
+            url, options, str(job_dir)
+        )
+    except downloader.DownloadFailed as exc:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        return _error(str(exc))
+
+    def cleanup():
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+    return StreamingResponse(
+        iter(zip_stream),
+        media_type="application/zip",
+        headers={"Content-Disposition": _content_disposition(zip_name)},
+        background=BackgroundTask(cleanup),
+    )
