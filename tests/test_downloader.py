@@ -94,3 +94,39 @@ def test_build_playlist_zip_returns_stream_and_name(monkeypatch, tmp_path):
     data = b"".join(stream)
     assert data[:2] == b"PK"            # ZIP magic number
     assert len(data) > 0
+
+
+def test_build_playlist_zip_skips_failed_track(monkeypatch, tmp_path):
+    import io
+    import zipfile
+
+    fake = {
+        "type": "playlist",
+        "title": "My Mix",
+        "count": 2,
+        "entries": [
+            {"url": "http://x/1", "title": "Good", "channel": "Band"},
+            {"url": "http://x/2", "title": "Bad", "channel": "Band"},
+        ],
+    }
+    monkeypatch.setattr(downloader, "inspect", lambda url: fake)
+
+    def fake_download(url, options, out_dir):
+        if url == "http://x/2":
+            raise downloader.DownloadFailed("boom")
+        path = os.path.join(out_dir, "Band - Good.mp3")
+        with open(path, "wb") as fh:
+            fh.write(b"good-audio")
+        return path
+    monkeypatch.setattr(downloader, "download_one", fake_download)
+
+    stream, name = downloader.build_playlist_zip(
+        "http://x", DownloadOptions(), str(tmp_path)
+    )
+    data = b"".join(stream)
+    zf = zipfile.ZipFile(io.BytesIO(data))
+    names = zf.namelist()
+    assert "Band - Good.mp3" in names
+    assert "_errors.txt" in names
+    assert zf.read("Band - Good.mp3") == b"good-audio"
+    assert "boom" in zf.read("_errors.txt").decode("utf-8")

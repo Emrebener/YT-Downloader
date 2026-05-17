@@ -118,6 +118,8 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
         raise DownloadFailed("This URL is not a playlist.")
 
     entries = data["entries"]
+    if not entries:
+        raise DownloadFailed("Playlist is empty or has no accessible entries.")
     ext = options.format
     stream = ZipStream(sized=False)
     errors: list[str] = []
@@ -161,14 +163,17 @@ def _track_bytes(entry, options, job_dir, idx, arcname, errors):
         path = download_one(entry["url"], options, track_dir)
     except DownloadFailed as exc:
         errors.append(f"{arcname}: {exc}")
+        shutil.rmtree(track_dir, ignore_errors=True)
         return
-    with open(path, "rb") as fh:
-        while True:
-            chunk = fh.read(CHUNK)
-            if not chunk:
-                break
-            yield chunk
-    shutil.rmtree(track_dir, ignore_errors=True)
+    try:
+        with open(path, "rb") as fh:
+            while True:
+                chunk = fh.read(CHUNK)
+                if not chunk:
+                    break
+                yield chunk
+    finally:
+        shutil.rmtree(track_dir, ignore_errors=True)
 
 
 def _errors_text(errors: list):
