@@ -120,6 +120,12 @@ def test_download_zip_streams_archive(client, monkeypatch):
     assert res.content.startswith(b"PK")
     assert "My Mix.zip" in res.headers["content-disposition"]
 
+    # The BackgroundTask cleanup runs synchronously under TestClient,
+    # so the job dir must be gone after the ZIP has streamed.
+    work_dir = app_module.WORK_DIR
+    remaining = list(work_dir.iterdir()) if work_dir.exists() else []
+    assert remaining == [], f"job dir not cleaned up after ZIP stream: {remaining}"
+
 
 def test_download_zip_non_playlist_returns_error(client, monkeypatch):
     def boom(url, options, job_dir):
