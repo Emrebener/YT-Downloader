@@ -84,6 +84,8 @@ def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.sanitize_info(ydl.extract_info(url, download=True))
+            if info is None:
+                raise DownloadFailed("Could not download this URL.")
     except DownloadError as exc:
         raise DownloadFailed(_clean(str(exc)))
     return _resolve_path(info)

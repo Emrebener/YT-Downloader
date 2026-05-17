@@ -38,11 +38,28 @@ def test_inspect_bad_url_raises_download_failed():
 
 @pytest.mark.network
 def test_download_one_produces_named_audio_file(tmp_path):
+    path = None
     try:
         path = downloader.download_one(TEST_VIDEO, DownloadOptions(), str(tmp_path))
     except downloader.DownloadFailed as exc:
         _skip_if_gone(exc)
+    assert path is not None
     assert os.path.exists(path)
     assert path.endswith(".mp3")
     # Filename follows "<channel> - <title>.mp3".
     assert " - " in os.path.basename(path)
+
+
+def test_resolve_path_prefers_requested_downloads():
+    info = {"requested_downloads": [{"filepath": "/tmp/a.mp3"}], "filepath": "/tmp/b.mp3"}
+    assert downloader._resolve_path(info) == "/tmp/a.mp3"
+
+
+def test_resolve_path_falls_back_to_filepath():
+    info = {"requested_downloads": [], "filepath": "/tmp/b.mp3"}
+    assert downloader._resolve_path(info) == "/tmp/b.mp3"
+
+
+def test_resolve_path_raises_when_no_path():
+    with pytest.raises(downloader.DownloadFailed):
+        downloader._resolve_path({})
