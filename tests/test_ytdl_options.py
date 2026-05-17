@@ -1,3 +1,5 @@
+import pytest
+
 from app.ytdl_options import DownloadOptions, build_ydl_opts, OUTTMPL
 
 
@@ -27,11 +29,12 @@ def test_audio_without_extras():
     assert "writethumbnail" not in opts
 
 
-def test_audio_flac_has_no_quality():
-    options = DownloadOptions(format="flac")
+@pytest.mark.parametrize("fmt", ["flac", "wav"])
+def test_lossless_format_has_no_quality(fmt):
+    options = DownloadOptions(format=fmt)
     opts = build_ydl_opts(options, "/work/job1")
     extract = opts["postprocessors"][0]
-    assert extract["preferredcodec"] == "flac"
+    assert extract["preferredcodec"] == fmt
     assert "preferredquality" not in extract
 
 
@@ -40,6 +43,10 @@ def test_video_best():
     opts = build_ydl_opts(options, "/work/job1")
     assert opts["format"] == "bestvideo*+bestaudio/best"
     assert opts["merge_output_format"] == "mp4"
+    keys = [pp["key"] for pp in opts["postprocessors"]]
+    assert "FFmpegMetadata" in keys
+    assert "EmbedThumbnail" in keys
+    assert opts["writethumbnail"] is True
 
 
 def test_video_resolution_cap():
@@ -47,3 +54,7 @@ def test_video_resolution_cap():
     opts = build_ydl_opts(options, "/work/job1")
     assert opts["format"] == "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
     assert opts["merge_output_format"] == "mkv"
+    keys = [pp["key"] for pp in opts["postprocessors"]]
+    assert "FFmpegMetadata" in keys
+    assert "EmbedThumbnail" in keys
+    assert opts["writethumbnail"] is True
