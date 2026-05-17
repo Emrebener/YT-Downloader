@@ -63,3 +63,34 @@ def test_resolve_path_falls_back_to_filepath():
 def test_resolve_path_raises_when_no_path():
     with pytest.raises(downloader.DownloadFailed):
         downloader._resolve_path({})
+
+
+def test_build_playlist_zip_rejects_non_playlist(monkeypatch, tmp_path):
+    monkeypatch.setattr(downloader, "inspect", lambda url: {"type": "video"})
+    with pytest.raises(downloader.DownloadFailed):
+        downloader.build_playlist_zip("http://x", DownloadOptions(), str(tmp_path))
+
+
+def test_build_playlist_zip_returns_stream_and_name(monkeypatch, tmp_path):
+    fake = {
+        "type": "playlist",
+        "title": "My Mix",
+        "count": 1,
+        "entries": [{"url": "http://x/1", "title": "Song", "channel": "Band"}],
+    }
+    monkeypatch.setattr(downloader, "inspect", lambda url: fake)
+    # Make each track "download" a tiny file without network.
+    def fake_download(url, options, out_dir):
+        path = os.path.join(out_dir, "Band - Song.mp3")
+        with open(path, "wb") as fh:
+            fh.write(b"audio-bytes")
+        return path
+    monkeypatch.setattr(downloader, "download_one", fake_download)
+
+    stream, name = downloader.build_playlist_zip(
+        "http://x", DownloadOptions(), str(tmp_path)
+    )
+    assert name == "My Mix.zip"
+    data = b"".join(stream)
+    assert data[:2] == b"PK"            # ZIP magic number
+    assert len(data) > 0
