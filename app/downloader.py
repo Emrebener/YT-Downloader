@@ -76,3 +76,28 @@ def _thumb(e: dict):
     if e.get("id"):
         return f"https://i.ytimg.com/vi/{e['id']}/default.jpg"
     return None
+
+
+def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
+    """Download a single video/audio file into ``out_dir``; return its final path."""
+    ydl_opts = build_ydl_opts(options, out_dir)
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.sanitize_info(ydl.extract_info(url, download=True))
+    except DownloadError as exc:
+        raise DownloadFailed(_clean(str(exc)))
+    return _resolve_path(info)
+
+
+def _resolve_path(info: dict) -> str:
+    """Find the final file path from the post-processed info dict.
+
+    The temp dir is never globbed: EmbedThumbnail/FFmpegMetadata leave
+    intermediate .webp/.part/pre-mux artifacts that a glob could pick up.
+    """
+    downloads = info.get("requested_downloads") or []
+    if downloads and downloads[0].get("filepath"):
+        return downloads[0]["filepath"]
+    if info.get("filepath"):
+        return info["filepath"]
+    raise DownloadFailed("Could not determine the downloaded file path.")

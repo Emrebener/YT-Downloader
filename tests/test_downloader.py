@@ -34,3 +34,15 @@ def test_inspect_video_returns_video_dict():
 def test_inspect_bad_url_raises_download_failed():
     with pytest.raises(downloader.DownloadFailed):
         downloader.inspect("https://not-a-real-site.example/nope")
+
+
+@pytest.mark.network
+def test_download_one_produces_named_audio_file(tmp_path):
+    try:
+        path = downloader.download_one(TEST_VIDEO, DownloadOptions(), str(tmp_path))
+    except downloader.DownloadFailed as exc:
+        _skip_if_gone(exc)
+    assert os.path.exists(path)
+    assert path.endswith(".mp3")
+    # Filename follows "<channel> - <title>.mp3".
+    assert " - " in os.path.basename(path)
