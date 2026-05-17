@@ -33,7 +33,7 @@ def test_inspect_video_returns_video_dict():
 
 def test_inspect_bad_url_raises_download_failed():
     with pytest.raises(downloader.DownloadFailed):
-        downloader.inspect("https://not-a-real-site.example/nope")
+        downloader.inspect("bogus://x")
 
 
 @pytest.mark.network

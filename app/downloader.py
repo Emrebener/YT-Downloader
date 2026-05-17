@@ -3,7 +3,7 @@ import os
 import shutil
 
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import DownloadError, sanitize_filename
+from yt_dlp.utils import YoutubeDLError, sanitize_filename
 from zipstream import ZipStream
 
 from app.ytdl_options import DownloadOptions, build_ydl_opts
@@ -36,7 +36,7 @@ def inspect(url: str) -> dict:
             info = ydl.sanitize_info(ydl.extract_info(url, download=False))
             if info is None:
                 raise DownloadFailed("Could not retrieve metadata for this URL.")
-    except DownloadError as exc:
+    except YoutubeDLError as exc:
         raise DownloadFailed(_clean(str(exc)))
 
     if info.get("_type") == "playlist":
@@ -86,7 +86,7 @@ def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
             info = ydl.sanitize_info(ydl.extract_info(url, download=True))
             if info is None:
                 raise DownloadFailed("Could not download this URL.")
-    except DownloadError as exc:
+    except YoutubeDLError as exc:
         raise DownloadFailed(_clean(str(exc)))
     return _resolve_path(info)
 

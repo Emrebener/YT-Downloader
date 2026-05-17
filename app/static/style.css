@@ -94,6 +94,7 @@ h1 { text-align: center; font-size: 24px; }
 .pl-actions { display: flex; gap: 8px; }
 .pl-actions button { padding: 7px 14px; font-size: 13px; }
 .pl-actions button.secondary { background: var(--panel-2); }
+.pl-actions button:disabled { opacity: 0.5; cursor: default; }
 
 .track {
   display: flex;
