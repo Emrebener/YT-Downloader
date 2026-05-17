@@ -122,7 +122,7 @@ def api_download(req: DownloadRequest):
     with _tokens_lock:
         _tokens[token] = {
             "path": path,
-            "dir": job_dir,
+            "dir": str(job_dir),
             "filename": os.path.basename(path),
             "created_at": time.time(),
         }

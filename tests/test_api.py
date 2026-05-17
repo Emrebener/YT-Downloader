@@ -81,6 +81,12 @@ def test_download_then_file_roundtrip(client, monkeypatch):
     assert 'filename="Eminem - Mockingbird.mp3"' in cd
     assert "filename*=UTF-8''" in cd
 
+    # The BackgroundTask cleanup runs synchronously under TestClient,
+    # so the job dir must be gone after the file has been served.
+    work_dir = app_module.WORK_DIR
+    remaining = list(work_dir.iterdir()) if work_dir.exists() else []
+    assert remaining == [], f"job dir not cleaned up: {remaining}"
+
 
 def test_download_error_returns_error_json(client, monkeypatch):
     def boom(url, options, out_dir):
@@ -89,6 +95,11 @@ def test_download_error_returns_error_json(client, monkeypatch):
     res = client.post("/api/download", json={"url": "http://x"})
     assert res.status_code == 400
     assert res.json() == {"error": "Video unavailable"}
+
+    # The failing download must not leak its job dir.
+    work_dir = app_module.WORK_DIR
+    remaining = list(work_dir.iterdir()) if work_dir.exists() else []
+    assert remaining == [], f"job dir leaked on failure: {remaining}"
 
 
 def test_file_unknown_token_returns_404(client):
