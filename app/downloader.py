@@ -34,6 +34,8 @@ def inspect(url: str) -> dict:
     try:
         with YoutubeDL(opts) as ydl:
             info = ydl.sanitize_info(ydl.extract_info(url, download=False))
+            if info is None:
+                raise DownloadFailed("Could not retrieve metadata for this URL.")
     except DownloadError as exc:
         raise DownloadFailed(_clean(str(exc)))
 
@@ -67,9 +69,10 @@ def _entry(e: dict) -> dict:
 
 
 def _thumb(e: dict):
-    thumbs = e.get("thumbnails") or []
-    if thumbs:
-        return thumbs[-1].get("url")
+    """Return the best available thumbnail URL for a playlist entry."""
+    for thumb in reversed(e.get("thumbnails") or []):
+        if thumb.get("url"):
+            return thumb["url"]
     if e.get("id"):
         return f"https://i.ytimg.com/vi/{e['id']}/default.jpg"
     return None

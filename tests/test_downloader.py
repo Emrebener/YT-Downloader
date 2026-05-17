@@ -15,7 +15,7 @@ def _skip_if_gone(exc: Exception):
     msg = str(exc).lower()
     if any(s in msg for s in ("unavailable", "removed", "private", "not available")):
         pytest.skip(f"test video no longer available: {exc}")
-    raise exc
+    raise
 
 
 @pytest.mark.network
@@ -27,6 +27,8 @@ def test_inspect_video_returns_video_dict():
     assert info["type"] == "video"
     assert info["title"]
     assert "channel" in info
+    assert "duration" in info
+    assert "thumbnail" in info
 
 
 def test_inspect_bad_url_raises_download_failed():
