@@ -102,3 +102,47 @@ def api_inspect(req: InspectRequest):
         return downloader.inspect(req.url)
     except downloader.DownloadFailed as exc:
         return _error(str(exc))
+
+
+@app.post("/api/download")
+def api_download(req: DownloadRequest):
+    """Download one file synchronously; return a token for fetching it."""
+    options = DownloadOptions(
+        mode=req.mode, format=req.format, quality=req.quality,
+        embed_thumbnail=req.thumbnail, embed_metadata=req.metadata,
+    )
+    job_dir = _new_job_dir()
+    try:
+        path = downloader.download_one(req.url, options, str(job_dir))
+    except downloader.DownloadFailed as exc:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        return _error(str(exc))
+
+    token = uuid.uuid4().hex
+    with _tokens_lock:
+        _tokens[token] = {
+            "path": path,
+            "dir": job_dir,
+            "filename": os.path.basename(path),
+            "created_at": time.time(),
+        }
+    return {"token": token}
+
+
+@app.get("/api/file/{token}")
+def api_file(token: str):
+    """Stream a previously prepared file, then delete its temp dir."""
+    with _tokens_lock:
+        entry = _tokens.pop(token, None)
+    if entry is None:
+        return _error("Unknown or expired download token.", code=404)
+
+    def cleanup():
+        shutil.rmtree(entry["dir"], ignore_errors=True)
+
+    return FileResponse(
+        entry["path"],
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": _content_disposition(entry["filename"])},
+        background=BackgroundTask(cleanup),
+    )

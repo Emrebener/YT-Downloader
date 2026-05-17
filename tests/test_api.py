@@ -59,3 +59,39 @@ def test_inspect_bad_url_returns_error_json(client, monkeypatch):
     res = client.post("/api/inspect", json={"url": "http://x"})
     assert res.status_code == 400
     assert res.json() == {"error": "Unsupported URL"}
+
+
+def test_download_then_file_roundtrip(client, monkeypatch):
+    # Fake a download that writes a real file into the job dir.
+    def fake_download(url, options, out_dir):
+        path = os.path.join(out_dir, "Eminem - Mockingbird.mp3")
+        with open(path, "wb") as fh:
+            fh.write(b"id3-bytes")
+        return path
+    monkeypatch.setattr(downloader, "download_one", fake_download)
+
+    res = client.post("/api/download", json={"url": "http://x"})
+    assert res.status_code == 200
+    token = res.json()["token"]
+
+    res2 = client.get(f"/api/file/{token}")
+    assert res2.status_code == 200
+    assert res2.content == b"id3-bytes"
+    cd = res2.headers["content-disposition"]
+    assert 'filename="Eminem - Mockingbird.mp3"' in cd
+    assert "filename*=UTF-8''" in cd
+
+
+def test_download_error_returns_error_json(client, monkeypatch):
+    def boom(url, options, out_dir):
+        raise downloader.DownloadFailed("Video unavailable")
+    monkeypatch.setattr(downloader, "download_one", boom)
+    res = client.post("/api/download", json={"url": "http://x"})
+    assert res.status_code == 400
+    assert res.json() == {"error": "Video unavailable"}
+
+
+def test_file_unknown_token_returns_404(client):
+    res = client.get("/api/file/does-not-exist")
+    assert res.status_code == 404
+    assert "error" in res.json()
