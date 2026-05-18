@@ -64,9 +64,17 @@ function showError(msg) {
   $("error").hidden = false;
 }
 function clearError() { $("error").hidden = true; }
+function spinner() {
+  const sp = document.createElement("span");
+  sp.className = "spinner";
+  return sp;
+}
+
 function setStatus(msg) {
-  $("status").textContent = msg || "";
-  $("status").hidden = !msg;
+  const el = $("status");
+  el.replaceChildren();
+  el.hidden = !msg;
+  if (msg) el.append(spinner(), document.createTextNode(msg));
 }
 
 async function inspectUrl(url) {
@@ -117,10 +125,15 @@ function setTrackStatus(row, state, message) {
   const el = row.querySelector(".track-status");
   const btn = row.querySelector("button");
   el.className = "track-status " + (state || "");
-  if (state === "downloading") { el.textContent = "downloading…"; btn.disabled = true; }
-  else if (state === "done") { el.textContent = "done"; btn.disabled = false; }
-  else if (state === "error") { el.textContent = message || "failed"; btn.disabled = false; }
-  else { el.textContent = ""; btn.disabled = false; }
+  el.replaceChildren();
+  btn.disabled = state === "downloading";
+  if (state === "downloading") {
+    el.append(spinner(), document.createTextNode("downloading…"));
+  } else if (state === "done") {
+    el.textContent = "done";
+  } else if (state === "error") {
+    el.textContent = message || "failed";
+  }
 }
 
 function buildTrackRow(entry, index) {

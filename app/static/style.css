@@ -244,6 +244,29 @@ button {
   margin: 0 0 14px;
 }
 
+/* ---- loading spinner ---- */
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  border: 2px solid var(--border-hi);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -0.16em;
+  animation: spin 0.65s linear infinite;
+}
+
+.track-status .spinner {
+  width: 11px;
+  height: 11px;
+  margin-right: 6px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ---- playlist ---- */
 .pl-head {
   display: flex;
