@@ -72,6 +72,9 @@ def test_build_playlist_zip_rejects_non_playlist(monkeypatch, tmp_path):
 
 
 def test_build_playlist_zip_returns_stream_and_name(monkeypatch, tmp_path):
+    import io
+    import zipfile
+
     fake = {
         "type": "playlist",
         "title": "My Mix",
@@ -93,7 +96,10 @@ def test_build_playlist_zip_returns_stream_and_name(monkeypatch, tmp_path):
     assert name == "My Mix.zip"
     data = b"".join(stream)
     assert data[:2] == b"PK"            # ZIP magic number
-    assert len(data) > 0
+    zf = zipfile.ZipFile(io.BytesIO(data))
+    # All tracks succeeded — no _errors.txt is added.
+    assert zf.namelist() == ["Band - Song.mp3"]
+    assert zf.read("Band - Song.mp3") == b"audio-bytes"
 
 
 def test_build_playlist_zip_skips_failed_track(monkeypatch, tmp_path):
@@ -125,8 +131,30 @@ def test_build_playlist_zip_skips_failed_track(monkeypatch, tmp_path):
     )
     data = b"".join(stream)
     zf = zipfile.ZipFile(io.BytesIO(data))
-    names = zf.namelist()
-    assert "Band - Good.mp3" in names
-    assert "_errors.txt" in names
+    # The failed track produces NO entry at all — not an empty file.
+    assert zf.namelist() == ["Band - Good.mp3", "_errors.txt"]
     assert zf.read("Band - Good.mp3") == b"good-audio"
-    assert "boom" in zf.read("_errors.txt").decode("utf-8")
+    errors_txt = zf.read("_errors.txt").decode("utf-8")
+    assert "Bad" in errors_txt and "boom" in errors_txt
+
+
+def test_build_playlist_zip_all_failed_raises(monkeypatch, tmp_path):
+    fake = {
+        "type": "playlist",
+        "title": "Dead Mix",
+        "count": 2,
+        "entries": [
+            {"url": "http://x/1", "title": "A", "channel": "C"},
+            {"url": "http://x/2", "title": "B", "channel": "C"},
+        ],
+    }
+    monkeypatch.setattr(downloader, "inspect", lambda url: fake)
+    monkeypatch.setattr(
+        downloader, "download_one",
+        lambda url, options, out_dir: (_ for _ in ()).throw(
+            downloader.DownloadFailed("Video unavailable")
+        ),
+    )
+
+    with pytest.raises(downloader.DownloadFailed):
+        downloader.build_playlist_zip("http://x", DownloadOptions(), str(tmp_path))

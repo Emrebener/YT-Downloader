@@ -8,8 +8,6 @@ from zipstream import ZipStream
 
 from app.ytdl_options import DownloadOptions, build_ydl_opts
 
-CHUNK = 64 * 1024
-
 
 class DownloadFailed(Exception):
     """Raised when yt-dlp cannot inspect or download a URL."""
@@ -108,10 +106,11 @@ def _resolve_path(info: dict) -> str:
 def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
     """Return ``(ZipStream, zip_name)`` for a playlist URL.
 
-    The ZipStream downloads each track lazily as it is consumed, so the HTTP
-    response starts streaming as soon as the first track finishes. A track that
-    fails is skipped and recorded; the failures are written to ``_errors.txt``
-    inside the archive.
+    Every track is downloaded first; only the files that download successfully
+    are added to the archive. Videos that are unavailable, private or removed
+    are skipped entirely — they produce no ZIP entry — and are listed in an
+    ``_errors.txt`` file inside the archive. The returned ZipStream then streams
+    the finished files straight from disk.
     """
     data = inspect(url)
     if data["type"] != "playlist":
@@ -120,69 +119,50 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
     entries = data["entries"]
     if not entries:
         raise DownloadFailed("Playlist is empty or has no accessible entries.")
-    ext = options.format
-    stream = ZipStream(sized=False)
+
+    files: list[tuple[str, str]] = []   # (arcname, filepath) for each success
     errors: list[str] = []
     used: set[str] = set()
 
     for idx, entry in enumerate(entries, 1):
-        arcname = _arcname(entry, ext, idx, used)
-        stream.add(
-            _track_bytes(entry, options, job_dir, idx, arcname, errors),
-            arcname,
-        )
-    stream.add(_errors_text(errors), "_errors.txt")
+        track_dir = os.path.join(job_dir, f"track-{idx}")
+        os.makedirs(track_dir, exist_ok=True)
+        try:
+            path = download_one(entry["url"], options, track_dir)
+        except DownloadFailed as exc:
+            label = entry.get("title") or f"track-{idx}"
+            errors.append(f"{label}: {exc}")
+            shutil.rmtree(track_dir, ignore_errors=True)
+            continue
+        files.append((_dedupe(os.path.basename(path), used), path))
+
+    if not files:
+        raise DownloadFailed("None of the playlist's videos could be downloaded.")
+
+    stream = ZipStream(sized=False)
+    for arcname, path in files:
+        stream.add_path(path, arcname)
+    if errors:
+        summary = f"{len(errors)} video(s) skipped (unavailable or failed):\n\n"
+        stream.add((summary + "\n".join(errors) + "\n").encode("utf-8"),
+                   "_errors.txt")
 
     zip_name = sanitize_filename(data.get("title") or "playlist") + ".zip"
     return stream, zip_name
 
 
-def _arcname(entry: dict, ext: str, idx: int, used: set) -> str:
-    """Build a unique, filesystem-safe ZIP entry name from flat playlist data."""
-    channel = entry.get("channel") or "Unknown"
-    title = entry.get("title") or f"track-{idx}"
-    base = sanitize_filename(f"{channel} - {title}")
-    name = f"{base}.{ext}"
+def _dedupe(name: str, used: set) -> str:
+    """Return ``name`` made unique against ``used`` by adding a ``(n)`` suffix."""
+    if name not in used:
+        used.add(name)
+        return name
+    stem, dot, ext = name.rpartition(".")
+    if not dot:
+        stem, ext = name, ""
     n = 2
-    while name in used:
-        name = f"{base} ({n}).{ext}"
+    while True:
+        candidate = f"{stem} ({n}).{ext}" if ext else f"{stem} ({n})"
+        if candidate not in used:
+            used.add(candidate)
+            return candidate
         n += 1
-    used.add(name)
-    return name
-
-
-def _track_bytes(entry, options, job_dir, idx, arcname, errors):
-    """Generator: download one track, yield its bytes, then clean up.
-
-    Consumed lazily by ZipStream during streaming. On failure it records the
-    error and yields nothing (leaving a 0-byte entry, explained in _errors.txt).
-    """
-    track_dir = os.path.join(job_dir, f"track-{idx}")
-    os.makedirs(track_dir, exist_ok=True)
-    try:
-        path = download_one(entry["url"], options, track_dir)
-    except DownloadFailed as exc:
-        errors.append(f"{arcname}: {exc}")
-        shutil.rmtree(track_dir, ignore_errors=True)
-        return
-    try:
-        with open(path, "rb") as fh:
-            while True:
-                chunk = fh.read(CHUNK)
-                if not chunk:
-                    break
-                yield chunk
-    finally:
-        shutil.rmtree(track_dir, ignore_errors=True)
-
-
-def _errors_text(errors: list):
-    """Generator for _errors.txt, evaluated last so ``errors`` is fully populated."""
-    def gen():
-        if not errors:
-            yield b"All tracks downloaded successfully.\n"
-        else:
-            yield f"{len(errors)} track(s) failed:\n\n".encode("utf-8")
-            for line in errors:
-                yield (line + "\n").encode("utf-8")
-    return gen()
