@@ -1,7 +1,9 @@
+name: yt-downloader
+
 services:
   ytdl:
     build: .
-    container_name: youtube-mp3-downloader
+    container_name: yt-downloader
     ports:
       - "8800:8000"
     restart: unless-stopped

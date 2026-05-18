@@ -95,7 +95,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="YouTube MP3 Downloader", lifespan=lifespan)
+app = FastAPI(title="YT Downloader", lifespan=lifespan)
 
 
 @app.get("/api/status")

@@ -1,4 +1,4 @@
-# YouTube MP3 Downloader
+# YT Downloader
 
 A simple, self-hosted website for saving YouTube videos and playlists as **audio**
 (MP3, M4A, Opus, FLAC, WAV) or **video** (MP4, WebM, MKV) files — no ads, no
@@ -131,7 +131,7 @@ Open your web browser and go to:
 http://localhost:8800
 ```
 
-You should see the YouTube MP3 Downloader page. **That's it — setup is done.**
+You should see the YT Downloader page. **That's it — setup is done.**
 
 You can bookmark that address. As long as Docker is running, the app is too.
 
