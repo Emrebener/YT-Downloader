@@ -79,7 +79,11 @@ def inspect(url: str) -> dict:
             if info is None:
                 raise DownloadFailed("Could not retrieve metadata for this URL.")
     except YoutubeDLError as exc:
-        raise DownloadFailed(_friendly(str(exc)))
+        raw = str(exc)
+        raise DownloadFailed(
+            _friendly(raw),
+            cookies_expired=_signin_wall(raw) and cookie_file() is not None,
+        )
 
     if info.get("_type") == "playlist":
         entries = [_entry(e) for e in (info.get("entries") or []) if e]
@@ -129,7 +133,11 @@ def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
             if info is None:
                 raise DownloadFailed("Could not download this URL.")
     except YoutubeDLError as exc:
-        raise DownloadFailed(_friendly(str(exc)))
+        raw = str(exc)
+        raise DownloadFailed(
+            _friendly(raw),
+            cookies_expired=_signin_wall(raw) and cookie_file() is not None,
+        )
     return _resolve_path(info)
 
 

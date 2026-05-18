@@ -200,3 +200,59 @@ def test_friendly_returns_hint_for_signin_wall():
 
 def test_friendly_passes_through_plain_error():
     assert downloader._friendly("ERROR: Video unavailable") == "Video unavailable"
+
+
+class _SigninWallYDL:
+    """Fake YoutubeDL whose extract_info always raises YouTube's bot wall."""
+
+    def __init__(self, opts):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def sanitize_info(self, info):
+        return info
+
+    def extract_info(self, url, download=False):
+        from yt_dlp.utils import YoutubeDLError
+        raise YoutubeDLError("ERROR: Sign in to confirm you're not a bot")
+
+
+def test_inspect_flags_expired_when_cookies_present(monkeypatch, tmp_path):
+    monkeypatch.setattr(downloader, "YoutubeDL", _SigninWallYDL)
+    f = tmp_path / "cookies.txt"
+    f.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv("COOKIES_FILE", str(f))
+    with pytest.raises(downloader.DownloadFailed) as exc:
+        downloader.inspect("http://x")
+    assert exc.value.cookies_expired is True
+
+
+def test_inspect_no_flag_when_cookies_absent(monkeypatch, tmp_path):
+    monkeypatch.setattr(downloader, "YoutubeDL", _SigninWallYDL)
+    monkeypatch.setenv("COOKIES_FILE", str(tmp_path / "absent.txt"))
+    with pytest.raises(downloader.DownloadFailed) as exc:
+        downloader.inspect("http://x")
+    assert exc.value.cookies_expired is False
+
+
+def test_download_one_flags_expired_when_cookies_present(monkeypatch, tmp_path):
+    monkeypatch.setattr(downloader, "YoutubeDL", _SigninWallYDL)
+    f = tmp_path / "cookies.txt"
+    f.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv("COOKIES_FILE", str(f))
+    with pytest.raises(downloader.DownloadFailed) as exc:
+        downloader.download_one("http://x", DownloadOptions(), str(tmp_path))
+    assert exc.value.cookies_expired is True
+
+
+def test_download_one_no_flag_when_cookies_absent(monkeypatch, tmp_path):
+    monkeypatch.setattr(downloader, "YoutubeDL", _SigninWallYDL)
+    monkeypatch.setenv("COOKIES_FILE", str(tmp_path / "absent.txt"))
+    with pytest.raises(downloader.DownloadFailed) as exc:
+        downloader.download_one("http://x", DownloadOptions(), str(tmp_path))
+    assert exc.value.cookies_expired is False
