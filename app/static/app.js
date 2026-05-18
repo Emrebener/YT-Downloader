@@ -85,7 +85,9 @@ async function inspectUrl(url) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Could not read that URL.");
+    const err = new Error(data.error || "Could not read that URL.");
+    err.cookiesExpired = Boolean(data.cookies_expired);
+    throw err;
   }
   return res.json();
 }
@@ -99,7 +101,9 @@ async function downloadOne(url, options) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Download failed.");
+    const err = new Error(data.error || "Download failed.");
+    err.cookiesExpired = Boolean(data.cookies_expired);
+    throw err;
   }
   const { token } = await res.json();
   const sink = $("sink");
@@ -127,7 +131,9 @@ async function downloadZip(options, zipBtn, seqBtn) {
     const res = await fetch("/api/download-zip?" + params.toString());
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "ZIP download failed.");
+      const err = new Error(data.error || "ZIP download failed.");
+      err.cookiesExpired = Boolean(data.cookies_expired);
+      throw err;
     }
     const blob = await res.blob();
     const cd = res.headers.get("content-disposition") || "";
@@ -142,7 +148,7 @@ async function downloadZip(options, zipBtn, seqBtn) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(objUrl), 30000);
   } catch (e) {
-    showError(e.message);
+    reportError(e);
   } finally {
     zipBtn.disabled = false;
     seqBtn.disabled = false;
@@ -194,7 +200,9 @@ function buildTrackRow(entry, index) {
       await downloadOne(entry.url, currentOptions());
       setTrackStatus(row, "done");
     } catch (e) {
+      // setTrackStatus shows the message in the row; just add the banner.
       setTrackStatus(row, "error", e.message);
+      if (e.cookiesExpired) renderCookieBanner("expired");
     }
   });
 
@@ -247,6 +255,8 @@ function renderPlaylist(info) {
         setTrackStatus(rows[i], "done");
       } catch (e) {
         setTrackStatus(rows[i], "error", e.message);
+        // Cookie expiry won't fix itself mid-run — stop hammering the server.
+        if (e.cookiesExpired) { renderCookieBanner("expired"); break; }
       }
     }
     zipBtn.disabled = false;
@@ -274,10 +284,44 @@ async function onDownload() {
     }
   } catch (e) {
     setStatus("");
-    showError(e.message);
+    reportError(e);
   } finally {
     $("download-btn").disabled = false;
   }
+}
+
+// Render the cookie setup/expiry banner. variant is "missing" or "expired".
+function renderCookieBanner(variant) {
+  const banner = $("cookie-banner");
+  banner.replaceChildren();
+
+  const heading = document.createElement("strong");
+  const body = document.createElement("p");
+
+  if (variant === "expired") {
+    heading.textContent = "⚠ YouTube cookies expired";
+    body.textContent =
+      "Your cookies.txt looks expired — YouTube is asking to sign in again. " +
+      "Re-export the youtube.com cookies from your browser, replace the file " +
+      "in the app's cookies/ folder, then restart the container. See the " +
+      "README for details.";
+  } else {
+    heading.textContent = "⚠ No YouTube cookies configured";
+    body.textContent =
+      "YouTube may block downloads with a sign-in check. To fix it: install a " +
+      "\"cookies.txt\" browser extension, sign in to YouTube, export the " +
+      "youtube.com cookies, save the file as cookies.txt in the app's cookies/ " +
+      "folder, then restart the container. See the README for details.";
+  }
+
+  banner.append(heading, body);
+  banner.hidden = false;
+}
+
+// Show an error message and, if it was a cookie-expiry failure, the banner.
+function reportError(e) {
+  showError(e.message);
+  if (e.cookiesExpired) renderCookieBanner("expired");
 }
 
 // Show a one-time setup banner when no YouTube cookies file is configured.
@@ -291,22 +335,7 @@ async function checkCookieStatus() {
     return;
   }
   if (data.cookies) return;          // cookies present — nothing to warn about
-
-  const banner = $("cookie-banner");
-  banner.replaceChildren();
-
-  const heading = document.createElement("strong");
-  heading.textContent = "⚠ No YouTube cookies configured";
-
-  const body = document.createElement("p");
-  body.textContent =
-    "YouTube may block downloads with a sign-in check. To fix it: install a " +
-    "\"cookies.txt\" browser extension, sign in to YouTube, export the " +
-    "youtube.com cookies, save the file as cookies.txt in the app's cookies/ " +
-    "folder, then restart the container. See the README for details.";
-
-  banner.append(heading, body);
-  banner.hidden = false;
+  renderCookieBanner("missing");
 }
 
 function init() {
