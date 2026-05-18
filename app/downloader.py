@@ -82,7 +82,7 @@ def inspect(url: str) -> dict:
         raw = str(exc)
         raise DownloadFailed(
             _friendly(raw),
-            cookies_expired=_signin_wall(raw) and cookie_file() is not None,
+            cookies_expired=_signin_wall(raw) and cookies is not None,
         )
 
     if info.get("_type") == "playlist":
@@ -126,7 +126,8 @@ def _thumb(e: dict):
 
 def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
     """Download a single video/audio file into ``out_dir``; return its final path."""
-    ydl_opts = build_ydl_opts(options, out_dir, cookiefile=cookie_file())
+    cookies = cookie_file()
+    ydl_opts = build_ydl_opts(options, out_dir, cookiefile=cookies)
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.sanitize_info(ydl.extract_info(url, download=True))
@@ -136,7 +137,7 @@ def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
         raw = str(exc)
         raise DownloadFailed(
             _friendly(raw),
-            cookies_expired=_signin_wall(raw) and cookie_file() is not None,
+            cookies_expired=_signin_wall(raw) and cookies is not None,
         )
     return _resolve_path(info)
 
