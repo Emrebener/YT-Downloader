@@ -137,7 +137,10 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
         files.append((_dedupe(os.path.basename(path), used), path))
 
     if not files:
-        raise DownloadFailed("None of the playlist's videos could be downloaded.")
+        detail = errors[0] if errors else "the playlist had no usable entries"
+        raise DownloadFailed(
+            f"All {len(entries)} videos failed to download. First error — {detail}"
+        )
 
     stream = ZipStream(sized=False)
     for arcname, path in files:

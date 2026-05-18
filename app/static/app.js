@@ -107,7 +107,9 @@ async function downloadOne(url, options) {
   sink.click();
 }
 
-function downloadZip(options) {
+// Fetch the playlist ZIP so a JSON error can be shown inline. On success the
+// archive is saved via a temporary object-URL anchor.
+async function downloadZip(options, zipBtn, seqBtn) {
   const params = new URLSearchParams({
     url: $("url").value.trim(),
     mode: options.mode,
@@ -116,9 +118,36 @@ function downloadZip(options) {
     thumbnail: String(options.thumbnail),
     metadata: String(options.metadata),
   });
-  const sink = $("sink");
-  sink.href = "/api/download-zip?" + params.toString();
-  sink.click();
+  clearError();
+  const label = zipBtn.textContent;
+  zipBtn.disabled = true;
+  seqBtn.disabled = true;
+  zipBtn.textContent = "Preparing ZIP…";
+  try {
+    const res = await fetch("/api/download-zip?" + params.toString());
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "ZIP download failed.");
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get("content-disposition") || "";
+    const match = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    const name = match ? decodeURIComponent(match[1]) : "playlist.zip";
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 30000);
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    zipBtn.disabled = false;
+    seqBtn.disabled = false;
+    zipBtn.textContent = label;
+  }
 }
 
 function setTrackStatus(row, state, message) {
@@ -190,7 +219,7 @@ function renderPlaylist(info) {
   const zipBtn = document.createElement("button");
   zipBtn.type = "button";
   zipBtn.textContent = "Download all (ZIP)";
-  zipBtn.addEventListener("click", () => downloadZip(currentOptions()));
+  zipBtn.addEventListener("click", () => downloadZip(currentOptions(), zipBtn, seqBtn));
 
   const seqBtn = document.createElement("button");
   seqBtn.type = "button";
