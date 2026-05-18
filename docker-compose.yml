@@ -3,7 +3,7 @@ services:
     build: .
     container_name: youtube-mp3-downloader
     ports:
-      - "8000:8000"
+      - "8800:8000"
     restart: unless-stopped
     environment:
       - WORK_DIR=/app/work
