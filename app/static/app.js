@@ -27,6 +27,7 @@ function refreshOptions() {
   if (mode === "audio") {
     fillSelect($("format"), AUDIO_FORMATS.map((f) => [f, f.toUpperCase()]));
     fillSelect($("quality"), AUDIO_QUALITY);
+    $("quality").value = "192";
   } else {
     fillSelect($("format"), VIDEO_FORMATS.map((f) => [f, f.toUpperCase()]));
     fillSelect($("quality"), VIDEO_QUALITY);
