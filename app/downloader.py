@@ -174,6 +174,7 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
 
     files: list[tuple[str, str]] = []   # (arcname, filepath) for each success
     errors: list[str] = []
+    cookies_expired = False              # set if any track hit the sign-in wall
     used: set[str] = set()
 
     for idx, entry in enumerate(entries, 1):
@@ -184,6 +185,8 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
         except DownloadFailed as exc:
             label = entry.get("title") or f"track-{idx}"
             errors.append(f"{label}: {exc}")
+            if exc.cookies_expired:
+                cookies_expired = True
             shutil.rmtree(track_dir, ignore_errors=True)
             continue
         files.append((_dedupe(os.path.basename(path), used), path))
@@ -191,7 +194,8 @@ def build_playlist_zip(url: str, options: DownloadOptions, job_dir: str):
     if not files:
         detail = errors[0] if errors else "the playlist had no usable entries"
         raise DownloadFailed(
-            f"All {len(entries)} videos failed to download. First error — {detail}"
+            f"All {len(entries)} videos failed to download. First error — {detail}",
+            cookies_expired=cookies_expired,
         )
 
     stream = ZipStream(sized=False)

@@ -256,3 +256,19 @@ def test_download_one_no_flag_when_cookies_absent(monkeypatch, tmp_path):
     with pytest.raises(downloader.DownloadFailed) as exc:
         downloader.download_one("http://x", DownloadOptions(), str(tmp_path))
     assert exc.value.cookies_expired is False
+
+
+def test_build_playlist_zip_propagates_cookies_expired(monkeypatch, tmp_path):
+    fake = {
+        "type": "playlist", "title": "Blocked Mix", "count": 1,
+        "entries": [{"url": "http://x/1", "title": "A", "channel": "C"}],
+    }
+    monkeypatch.setattr(downloader, "inspect", lambda url: fake)
+
+    def boom(url, options, out_dir):
+        raise downloader.DownloadFailed("blocked", cookies_expired=True)
+    monkeypatch.setattr(downloader, "download_one", boom)
+
+    with pytest.raises(downloader.DownloadFailed) as exc:
+        downloader.build_playlist_zip("http://x", DownloadOptions(), str(tmp_path))
+    assert exc.value.cookies_expired is True
