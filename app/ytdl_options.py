@@ -26,8 +26,14 @@ class DownloadOptions:
     embed_metadata: bool = True
 
 
-def build_ydl_opts(options: DownloadOptions, out_dir: str) -> dict:
-    """Return a yt-dlp options dict for downloading a single item into ``out_dir``."""
+def build_ydl_opts(options: DownloadOptions, out_dir: str,
+                   cookiefile: str | None = None) -> dict:
+    """Return a yt-dlp options dict for downloading a single item into ``out_dir``.
+
+    When ``cookiefile`` is given it is the path to a Netscape-format
+    cookies.txt; yt-dlp uses it to authenticate, working around YouTube's
+    sign-in / bot checks.
+    """
     opts: dict = {
         "paths": {"home": out_dir},
         "outtmpl": {"default": OUTTMPL},
@@ -36,6 +42,8 @@ def build_ydl_opts(options: DownloadOptions, out_dir: str) -> dict:
         "no_warnings": True,
         "postprocessors": [],
     }
+    if cookiefile:
+        opts["cookiefile"] = cookiefile
     if options.mode == "audio":
         _apply_audio(options, opts)
     else:

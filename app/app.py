@@ -95,6 +95,12 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="YouTube MP3 Downloader", lifespan=lifespan)
 
 
+@app.get("/api/status")
+def api_status():
+    """Report whether a YouTube cookies file is configured."""
+    return {"cookies": downloader.cookie_file() is not None}
+
+
 @app.post("/api/inspect")
 def api_inspect(req: InspectRequest):
     """Return video/playlist metadata for a URL."""

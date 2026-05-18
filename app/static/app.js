@@ -280,8 +280,38 @@ async function onDownload() {
   }
 }
 
+// Show a one-time setup banner when no YouTube cookies file is configured.
+async function checkCookieStatus() {
+  let data;
+  try {
+    const res = await fetch("/api/status");
+    if (!res.ok) return;
+    data = await res.json();
+  } catch (e) {
+    return;
+  }
+  if (data.cookies) return;          // cookies present — nothing to warn about
+
+  const banner = $("cookie-banner");
+  banner.replaceChildren();
+
+  const heading = document.createElement("strong");
+  heading.textContent = "⚠ No YouTube cookies configured";
+
+  const body = document.createElement("p");
+  body.textContent =
+    "YouTube may block downloads with a sign-in check. To fix it: install a " +
+    "\"cookies.txt\" browser extension, sign in to YouTube, export the " +
+    "youtube.com cookies, save the file as cookies.txt in the app's cookies/ " +
+    "folder, then restart the container. See the README for details.";
+
+  banner.append(heading, body);
+  banner.hidden = false;
+}
+
 function init() {
   refreshOptions();
+  checkCookieStatus();
 
   $("mode-toggle").addEventListener("click", (ev) => {
     const btn = ev.target.closest("button[data-mode]");

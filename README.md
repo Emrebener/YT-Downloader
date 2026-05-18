@@ -11,7 +11,7 @@ home LAN — no authentication.
 docker compose up -d --build
 ```
 
-Open `http://<host>:8000`. Paste a video or playlist URL, pick format/quality,
+Open `http://<host>:8800`. Paste a video or playlist URL, pick format/quality,
 and click Download.
 
 - A **video URL** downloads directly.
@@ -19,6 +19,30 @@ and click Download.
   "Download all (ZIP)" and "Download all (one by one)".
 
 Downloaded files are named `<channel> - <title>.<ext>`.
+
+The host port is set in `docker-compose.yml` (`8800:8000`); change the first
+number if 8800 is taken.
+
+## YouTube sign-in (cookies)
+
+YouTube blocks unauthenticated downloads with a "Sign in to confirm you're not
+a bot" check — playlists trip this especially often. To download reliably, give
+yt-dlp your YouTube cookies:
+
+1. Install a cookies-export extension, e.g. **Get cookies.txt LOCALLY**
+   (available for Chrome and Firefox).
+2. Sign in to `youtube.com` in that browser.
+3. With a YouTube tab open, use the extension to **export** cookies and save the
+   file as **`cookies.txt`**.
+4. Put `cookies.txt` in the **`cookies/`** folder next to `docker-compose.yml`.
+5. Restart: `docker compose restart`.
+
+The app shows a warning banner while no cookie file is present. If downloads
+later start failing again with a sign-in error, the cookies have expired —
+re-export and replace the file.
+
+**Keep `cookies.txt` private** — it grants access to your YouTube account. It is
+git-ignored so it is never committed.
 
 ## Options
 

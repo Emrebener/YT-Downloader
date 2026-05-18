@@ -7,7 +7,10 @@ services:
     restart: unless-stopped
     environment:
       - WORK_DIR=/app/work
-    # Uncomment to keep large playlist downloads on host disk instead of the
-    # container's writable layer:
-    # volumes:
-    #   - ./work:/app/work
+      - COOKIES_FILE=/app/cookies/cookies.txt
+    volumes:
+      # Put your exported YouTube cookies.txt inside ./cookies/ (see README).
+      - ./cookies:/app/cookies
+      # Uncomment to keep large playlist downloads on host disk instead of the
+      # container's writable layer:
+      # - ./work:/app/work

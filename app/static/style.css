@@ -243,6 +243,25 @@ button {
   margin: 0 0 14px;
 }
 
+/* ---- cookie setup banner ---- */
+.banner {
+  background: rgba(224, 168, 69, 0.12);
+  border: 1px solid rgba(224, 168, 69, 0.35);
+  border-left: 3px solid #e0a845;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.banner strong { color: #e7b860; }
+
+.banner p {
+  margin: 6px 0 0;
+  color: var(--text);
+  line-height: 1.5;
+}
+
 /* ---- loading spinner ---- */
 .spinner {
   display: inline-block;

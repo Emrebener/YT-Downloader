@@ -158,3 +158,15 @@ def test_build_playlist_zip_all_failed_raises(monkeypatch, tmp_path):
 
     with pytest.raises(downloader.DownloadFailed):
         downloader.build_playlist_zip("http://x", DownloadOptions(), str(tmp_path))
+
+
+def test_cookie_file_returns_path_when_present(monkeypatch, tmp_path):
+    f = tmp_path / "cookies.txt"
+    f.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv("COOKIES_FILE", str(f))
+    assert downloader.cookie_file() == str(f)
+
+
+def test_cookie_file_returns_none_when_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIES_FILE", str(tmp_path / "absent.txt"))
+    assert downloader.cookie_file() is None

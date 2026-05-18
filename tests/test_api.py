@@ -135,3 +135,17 @@ def test_download_zip_non_playlist_returns_error(client, monkeypatch):
     res = client.get("/api/download-zip", params={"url": "http://x"})
     assert res.status_code == 400
     assert res.json() == {"error": "This URL is not a playlist."}
+
+
+def test_status_reports_cookies_absent(client, monkeypatch):
+    monkeypatch.setattr(downloader, "cookie_file", lambda: None)
+    res = client.get("/api/status")
+    assert res.status_code == 200
+    assert res.json() == {"cookies": False}
+
+
+def test_status_reports_cookies_present(client, monkeypatch):
+    monkeypatch.setattr(downloader, "cookie_file", lambda: "/c/cookies.txt")
+    res = client.get("/api/status")
+    assert res.status_code == 200
+    assert res.json() == {"cookies": True}

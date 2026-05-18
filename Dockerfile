@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 
 ENV WORK_DIR=/app/work
+ENV COOKIES_FILE=/app/cookies/cookies.txt
 EXPOSE 8000
 
 # uvicorn imposes no per-request timeout by default, so long synchronous

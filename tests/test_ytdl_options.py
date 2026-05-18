@@ -58,3 +58,14 @@ def test_video_resolution_cap():
     assert "FFmpegMetadata" in keys
     assert "EmbedThumbnail" in keys
     assert opts["writethumbnail"] is True
+
+
+def test_cookiefile_added_when_given():
+    opts = build_ydl_opts(DownloadOptions(), "/work/job1",
+                          cookiefile="/c/cookies.txt")
+    assert opts["cookiefile"] == "/c/cookies.txt"
+
+
+def test_cookiefile_absent_by_default():
+    opts = build_ydl_opts(DownloadOptions(), "/work/job1")
+    assert "cookiefile" not in opts

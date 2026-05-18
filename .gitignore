@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 excalidraw.log
+venv/
+# Never commit real YouTube cookies — they grant access to your account.
+cookies/*.txt

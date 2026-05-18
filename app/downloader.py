@@ -18,6 +18,31 @@ def _clean(message: str) -> str:
     return message.replace("ERROR:", "").strip()
 
 
+def _friendly(message: str) -> str:
+    """Turn a raw yt-dlp error into a concise, user-facing message.
+
+    YouTube's sign-in / bot-check wall has a long, link-laden error; collapse it
+    into a short hint pointing at cookie setup.
+    """
+    cleaned = _clean(message)
+    low = cleaned.lower()
+    if "sign in to confirm" in low or "not a bot" in low or "confirm your age" in low:
+        return ("YouTube blocked this download with a sign-in check. Add a "
+                "cookies.txt file — or refresh it if it has expired. See the "
+                "app's setup notes.")
+    return cleaned
+
+
+def cookie_file() -> str | None:
+    """Return the configured cookies.txt path if the file exists, else None.
+
+    The path comes from the ``COOKIES_FILE`` env var (default
+    ``/app/cookies/cookies.txt``). Read at call time so it stays current.
+    """
+    path = os.environ.get("COOKIES_FILE", "/app/cookies/cookies.txt")
+    return path if os.path.isfile(path) else None
+
+
 def inspect(url: str) -> dict:
     """Return metadata for ``url`` without downloading.
 
@@ -29,13 +54,16 @@ def inspect(url: str) -> dict:
         "extract_flat": "in_playlist",   # list playlist entries without resolving each
         "skip_download": True,
     }
+    cookies = cookie_file()
+    if cookies:
+        opts["cookiefile"] = cookies
     try:
         with YoutubeDL(opts) as ydl:
             info = ydl.sanitize_info(ydl.extract_info(url, download=False))
             if info is None:
                 raise DownloadFailed("Could not retrieve metadata for this URL.")
     except YoutubeDLError as exc:
-        raise DownloadFailed(_clean(str(exc)))
+        raise DownloadFailed(_friendly(str(exc)))
 
     if info.get("_type") == "playlist":
         entries = [_entry(e) for e in (info.get("entries") or []) if e]
@@ -78,14 +106,14 @@ def _thumb(e: dict):
 
 def download_one(url: str, options: DownloadOptions, out_dir: str) -> str:
     """Download a single video/audio file into ``out_dir``; return its final path."""
-    ydl_opts = build_ydl_opts(options, out_dir)
+    ydl_opts = build_ydl_opts(options, out_dir, cookiefile=cookie_file())
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.sanitize_info(ydl.extract_info(url, download=True))
             if info is None:
                 raise DownloadFailed("Could not download this URL.")
     except YoutubeDLError as exc:
-        raise DownloadFailed(_clean(str(exc)))
+        raise DownloadFailed(_friendly(str(exc)))
     return _resolve_path(info)
 
 
