@@ -1,4 +1,8 @@
+
+<img width="1150" height="955" alt="playlist" src="https://github.com/user-attachments/assets/833956ae-7210-4174-bf79-41a9105adc94" />
+
 # YT Downloader
+
 
 A simple, self-hosted website for saving YouTube videos and playlists as **audio**
 (MP3, M4A, Opus, FLAC, WAV) or **video** (MP4, WebM, MKV) files — no ads, no
