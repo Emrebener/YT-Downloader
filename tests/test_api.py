@@ -149,3 +149,30 @@ def test_status_reports_cookies_present(client, monkeypatch):
     res = client.get("/api/status")
     assert res.status_code == 200
     assert res.json() == {"cookies": True}
+
+
+def test_inspect_error_includes_cookies_expired(client, monkeypatch):
+    def boom(url):
+        raise downloader.DownloadFailed("blocked", cookies_expired=True)
+    monkeypatch.setattr(downloader, "inspect", boom)
+    res = client.post("/api/inspect", json={"url": "http://x"})
+    assert res.status_code == 400
+    assert res.json() == {"error": "blocked", "cookies_expired": True}
+
+
+def test_download_error_includes_cookies_expired(client, monkeypatch):
+    def boom(url, options, out_dir):
+        raise downloader.DownloadFailed("blocked", cookies_expired=True)
+    monkeypatch.setattr(downloader, "download_one", boom)
+    res = client.post("/api/download", json={"url": "http://x"})
+    assert res.status_code == 400
+    assert res.json() == {"error": "blocked", "cookies_expired": True}
+
+
+def test_download_zip_error_includes_cookies_expired(client, monkeypatch):
+    def boom(url, options, job_dir):
+        raise downloader.DownloadFailed("blocked", cookies_expired=True)
+    monkeypatch.setattr(downloader, "build_playlist_zip", boom)
+    res = client.get("/api/download-zip", params={"url": "http://x"})
+    assert res.status_code == 400
+    assert res.json() == {"error": "blocked", "cookies_expired": True}

@@ -42,8 +42,11 @@ class DownloadRequest(BaseModel):
     metadata: bool = True
 
 
-def _error(message: str, code: int = 400) -> JSONResponse:
-    return JSONResponse(status_code=code, content={"error": message})
+def _error(message: str, code: int = 400, cookies_expired: bool = False) -> JSONResponse:
+    body = {"error": message}
+    if cookies_expired:
+        body["cookies_expired"] = True
+    return JSONResponse(status_code=code, content=body)
 
 
 def _content_disposition(filename: str) -> str:
@@ -107,7 +110,7 @@ def api_inspect(req: InspectRequest):
     try:
         return downloader.inspect(req.url)
     except downloader.DownloadFailed as exc:
-        return _error(str(exc))
+        return _error(str(exc), cookies_expired=exc.cookies_expired)
 
 
 @app.post("/api/download")
@@ -122,7 +125,7 @@ def api_download(req: DownloadRequest):
         path = downloader.download_one(req.url, options, str(job_dir))
     except downloader.DownloadFailed as exc:
         shutil.rmtree(job_dir, ignore_errors=True)
-        return _error(str(exc))
+        return _error(str(exc), cookies_expired=exc.cookies_expired)
 
     token = uuid.uuid4().hex
     with _tokens_lock:
@@ -170,7 +173,7 @@ def api_download_zip(url: str, mode: str = "audio", format: str = "mp3",
         )
     except downloader.DownloadFailed as exc:
         shutil.rmtree(job_dir, ignore_errors=True)
-        return _error(str(exc))
+        return _error(str(exc), cookies_expired=exc.cookies_expired)
 
     def cleanup():
         shutil.rmtree(job_dir, ignore_errors=True)
