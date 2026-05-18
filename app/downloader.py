@@ -12,10 +12,27 @@ from app.ytdl_options import DownloadOptions, build_ydl_opts
 class DownloadFailed(Exception):
     """Raised when yt-dlp cannot inspect or download a URL."""
 
+    def __init__(self, message: str, cookies_expired: bool = False):
+        super().__init__(message)
+        #: True when the failure is YouTube's sign-in wall *and* a cookies
+        #: file was in use — i.e. the cookies look expired.
+        self.cookies_expired = cookies_expired
+
 
 def _clean(message: str) -> str:
     """Strip yt-dlp's noisy 'ERROR:' prefix for display to the user."""
     return message.replace("ERROR:", "").strip()
+
+
+def _signin_wall(message: str) -> bool:
+    """True if a yt-dlp error is YouTube's sign-in / bot-check / age wall.
+
+    Accepts both raw yt-dlp strings (e.g. ``"ERROR: Sign in…"``) and already-
+    cleaned ones — the check lowercases and substring-matches, so the prefix is ignored.
+    """
+    low = message.lower()
+    return ("sign in to confirm" in low or "not a bot" in low
+            or "confirm your age" in low)
 
 
 def _friendly(message: str) -> str:
@@ -25,8 +42,7 @@ def _friendly(message: str) -> str:
     into a short hint pointing at cookie setup.
     """
     cleaned = _clean(message)
-    low = cleaned.lower()
-    if "sign in to confirm" in low or "not a bot" in low or "confirm your age" in low:
+    if _signin_wall(cleaned):
         return ("YouTube blocked this download with a sign-in check. Add a "
                 "cookies.txt file — or refresh it if it has expired. See the "
                 "app's setup notes.")

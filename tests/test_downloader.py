@@ -170,3 +170,33 @@ def test_cookie_file_returns_path_when_present(monkeypatch, tmp_path):
 def test_cookie_file_returns_none_when_missing(monkeypatch, tmp_path):
     monkeypatch.setenv("COOKIES_FILE", str(tmp_path / "absent.txt"))
     assert downloader.cookie_file() is None
+
+
+def test_download_failed_defaults_cookies_expired_false():
+    assert downloader.DownloadFailed("oops").cookies_expired is False
+
+
+def test_download_failed_accepts_cookies_expired():
+    assert downloader.DownloadFailed("oops", cookies_expired=True).cookies_expired is True
+
+
+def test_signin_wall_detects_bot_check():
+    assert downloader._signin_wall("ERROR: Sign in to confirm you're not a bot")
+
+
+def test_signin_wall_detects_age_confirmation():
+    assert downloader._signin_wall("Please confirm your age")
+
+
+def test_signin_wall_ignores_plain_error():
+    assert not downloader._signin_wall("Video unavailable")
+
+
+def test_friendly_returns_hint_for_signin_wall():
+    msg = downloader._friendly("ERROR: Sign in to confirm you're not a bot")
+    assert "cookies.txt" in msg
+    assert "sign-in" in msg.lower()
+
+
+def test_friendly_passes_through_plain_error():
+    assert downloader._friendly("ERROR: Video unavailable") == "Video unavailable"
