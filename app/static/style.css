@@ -168,13 +168,20 @@ select option {
   margin-bottom: 20px;
 }
 
+.url-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
 .input-row input {
   flex: 1;
   min-width: 0;
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 13px 15px;
+  padding: 13px 40px 13px 15px;
   border-radius: var(--radius);
   font: inherit;
   font-size: 14px;
@@ -188,11 +195,42 @@ select option {
   border-color: var(--accent);
 }
 
+.url-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.url-clear:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.url-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 button {
   font: inherit;
 }
 
-.input-row button,
+.input-row > button,
 .pl-actions button {
   background: var(--accent);
   color: #fff;
@@ -206,13 +244,13 @@ button {
   box-shadow: 0 4px 16px rgba(224, 69, 123, 0.3);
 }
 
-.input-row button:hover,
+.input-row > button:hover,
 .pl-actions button:hover { background: var(--accent-hi); }
 
-.input-row button:active,
+.input-row > button:active,
 .pl-actions button:active { transform: translateY(1px); }
 
-.input-row button:focus-visible,
+.input-row > button:focus-visible,
 .pl-actions button:focus-visible,
 .toggle button:focus-visible,
 .track button:focus-visible {
@@ -220,7 +258,7 @@ button {
   outline-offset: 2px;
 }
 
-.input-row button:disabled {
+.input-row > button:disabled {
   opacity: 0.45;
   cursor: default;
   box-shadow: none;

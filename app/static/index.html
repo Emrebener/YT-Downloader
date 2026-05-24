@@ -29,7 +29,10 @@
     </div>
 
     <div class="input-row">
-      <input type="text" id="url" placeholder="Paste a YouTube video or playlist URL">
+      <div class="url-wrap">
+        <input type="text" id="url" placeholder="Paste a YouTube video or playlist URL">
+        <button type="button" id="url-clear" class="url-clear" aria-label="Clear URL" hidden>&times;</button>
+      </div>
       <button type="button" id="download-btn">Download</button>
     </div>
 

@@ -357,6 +357,17 @@ function init() {
   $("url").addEventListener("keydown", (ev) => {
     if (ev.key === "Enter") onDownload();
   });
+
+  const urlInput = $("url");
+  const urlClear = $("url-clear");
+  const syncUrlClear = () => { urlClear.hidden = urlInput.value === ""; };
+  urlInput.addEventListener("input", syncUrlClear);
+  urlClear.addEventListener("click", () => {
+    urlInput.value = "";
+    syncUrlClear();
+    urlInput.focus();
+  });
+  syncUrlClear();
 }
 
 init();
